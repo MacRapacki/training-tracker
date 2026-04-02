@@ -107,7 +107,7 @@ export default async function DashboardPage() {
                   <span>·</span>
                   <span>
                     {workout.exercises.reduce(
-                      (n, ex) => n + ex.sets.length,
+                      (n: number, ex) => n + ex.sets.length,
                       0
                     )}{" "}
                     sets
