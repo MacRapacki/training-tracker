@@ -1,5 +1,5 @@
 import { auth } from "@/feature/auth/auth";
-import { getDashboardStats, getWorkouts } from "@/lib/queries/workouts";
+import { getDashboardStats, getWorkouts, type WorkoutWithStats } from "@/lib/queries/workouts";
 import { formatRelativeDate, formatTonnage } from "@/lib/date";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
         <EmptyState />
       ) : (
         <div className="space-y-3">
-          {workouts.map((workout) => (
+          {workouts.map((workout: WorkoutWithStats) => (
             <Link
               key={workout.id}
               href={`/workouts/${workout.id}`}
