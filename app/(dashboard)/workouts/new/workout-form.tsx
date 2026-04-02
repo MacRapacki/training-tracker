@@ -162,7 +162,10 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
       })),
     };
 
-    startTransition(() => saveWorkout(payload));
+    startTransition(async () => {
+      const result = await saveWorkout(payload);
+      if (result?.error) setError(result.error);
+    });
   }
 
   // ── Filtered templates by search query ───────────────────────
