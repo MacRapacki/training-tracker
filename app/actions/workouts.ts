@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { auth } from "@/feature/auth/auth";
 import { redirect } from "next/navigation";
 import { routes } from "@/lib/routes";
+import { todayUTC } from "@/lib/queries/body";
 
 const setSchema = z.object({
   reps: z.coerce.number().int().min(1),
@@ -27,6 +28,7 @@ const workoutSchema = z.object({
   name: z.string().min(1),
   date: z.string(),
   notes: z.string().optional(),
+  bodyWeight: z.coerce.number().min(20).max(500).optional(),
   exercises: z.array(exerciseSchema).min(1),
 });
 
@@ -39,10 +41,23 @@ export async function saveWorkout(data: SaveWorkoutInput) {
 
   const parsed = workoutSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "Invalid data", issues: parsed.error.flatten() };
+    const firstIssue = parsed.error.issues[0];
+    return {
+      error: `Invalid data: ${firstIssue?.message} (${firstIssue?.path.join(".")})`,
+      issues: parsed.error.flatten(),
+    };
   }
 
-  const { name, date, notes, exercises } = parsed.data;
+  const { name, date, notes, bodyWeight, exercises } = parsed.data;
+
+  if (bodyWeight != null) {
+    const day = todayUTC();
+    await prisma.bodyWeight.upsert({
+      where: { userId_date: { userId, date: day } },
+      create: { userId, weight: bodyWeight, date: day },
+      update: { weight: bodyWeight },
+    });
+  }
 
   const workout = await prisma.workout.create({
     data: {
@@ -84,7 +99,11 @@ export async function updateWorkout(id: string, data: SaveWorkoutInput) {
 
   const parsed = workoutSchema.safeParse(data);
   if (!parsed.success) {
-    return { error: "Invalid data", issues: parsed.error.flatten() };
+    const firstIssue = parsed.error.issues[0];
+    return {
+      error: `Invalid data: ${firstIssue?.message} (${firstIssue?.path.join(".")})`,
+      issues: parsed.error.flatten(),
+    };
   }
 
   const { name, date, notes, exercises } = parsed.data;

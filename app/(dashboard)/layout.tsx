@@ -16,13 +16,13 @@ export default async function DashboardLayout({
     session?.user?.email?.[0]?.toUpperCase();
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="bg-background flex h-screen">
       {/* ── Desktop sidebar ── */}
-      <aside className="hidden w-60 flex-col border-r border-border bg-sidebar text-sidebar-foreground md:flex">
+      <aside className="border-border bg-sidebar text-sidebar-foreground hidden w-60 flex-col border-r md:flex">
         {/* Logo */}
-        <div className="flex h-16 items-center gap-2.5 border-b border-sidebar-border px-5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-sidebar-primary">
-            <Dumbbell className="size-4 text-sidebar-primary-foreground" />
+        <div className="border-sidebar-border flex h-16 items-center gap-2.5 border-b px-5">
+          <div className="bg-sidebar-primary flex size-8 items-center justify-center rounded-lg">
+            <Dumbbell className="text-sidebar-primary-foreground size-4" />
           </div>
           <span className="text-sm font-semibold tracking-tight">
             Training Tracker
@@ -33,7 +33,7 @@ export default async function DashboardLayout({
         <div className="px-3 pt-4">
           <Link
             href={routes.workoutNew}
-            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-sidebar-primary px-3 py-2 text-sm font-semibold text-sidebar-primary transition-colors hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
+            className="border-sidebar-primary text-sidebar-primary hover:bg-sidebar-primary hover:text-sidebar-primary-foreground flex w-full items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-sm font-semibold transition-colors"
           >
             <Plus className="size-4" />
             New Workout
@@ -43,9 +43,9 @@ export default async function DashboardLayout({
         <SidebarNavLinks />
 
         {/* User */}
-        <div className="border-t border-sidebar-border p-3">
+        <div className="border-sidebar-border border-t p-3">
           <div className="flex items-center gap-3 rounded-lg px-3 py-2">
-            <div className="flex size-7 shrink-0 items-center justify-center rounded-full bg-sidebar-accent text-xs font-semibold text-sidebar-accent-foreground">
+            <div className="bg-sidebar-accent text-sidebar-accent-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
               {initials}
             </div>
             <div className="min-w-0 flex-1">
@@ -56,7 +56,7 @@ export default async function DashboardLayout({
             <form action={logout}>
               <button
                 type="submit"
-                className="text-sidebar-foreground/50 transition-colors hover:text-sidebar-foreground"
+                className="text-sidebar-foreground/50 hover:text-sidebar-foreground cursor-pointer transition-colors"
                 title="Sign out"
               >
                 <LogOut className="size-4" />
@@ -69,15 +69,25 @@ export default async function DashboardLayout({
       {/* ── Mobile + main ── */}
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* Mobile top header */}
-        <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4 md:hidden">
+        <header className="border-border bg-background flex h-14 items-center justify-between border-b px-4 md:hidden">
           <div className="flex items-center gap-2">
-            <div className="flex size-7 items-center justify-center rounded-md bg-foreground">
-              <Dumbbell className="size-3.5 text-background" />
+            <div className="bg-foreground flex size-7 items-center justify-center rounded-md">
+              <Dumbbell className="text-background size-3.5" />
             </div>
             <span className="text-sm font-semibold">Training Tracker</span>
           </div>
-          <div className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-            {initials}
+          <div className="flex items-center gap-3 rounded-lg px-3 py-2">
+            <div className="bg-muted flex size-8 items-center justify-center rounded-full text-xs font-semibold">
+              {initials}
+            </div>
+            <button
+              type="submit"
+              className="text-sidebar-foreground/50 hover:text-sidebar-foreground cursor-pointer transition-colors"
+              title="Sign out"
+              onClick={logout}
+            >
+              <LogOut className="size-4" />
+            </button>
           </div>
         </header>
 
@@ -85,13 +95,13 @@ export default async function DashboardLayout({
         <main className="flex-1 overflow-y-auto pb-20 md:pb-0">{children}</main>
 
         {/* Mobile bottom nav */}
-        <div className="border-t border-border bg-background md:hidden">
+        <div className="border-border bg-background border-t md:hidden">
           <div className="relative">
             <BottomNav />
             {/* FAB — new workout */}
             <Link
               href={routes.workoutNew}
-              className="absolute -top-6 left-1/2 flex size-12 -translate-x-1/2 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform active:scale-95"
+              className="bg-foreground text-background absolute -top-6 left-1/2 flex size-12 -translate-x-1/2 items-center justify-center rounded-full shadow-lg transition-transform active:scale-95"
               aria-label="New workout"
             >
               <Plus className="size-5" />

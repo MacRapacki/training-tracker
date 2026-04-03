@@ -1,4 +1,5 @@
 import { auth } from "@/feature/auth/auth";
+import { prisma } from "@/lib/prisma";
 import { getWorkout } from "@/lib/queries/workout-detail";
 import { getExerciseTemplates } from "@/app/actions/workouts";
 import { WorkoutForm } from "../../new/workout-form";
@@ -14,9 +15,14 @@ export default async function EditWorkoutPage({
   const session = await auth();
   if (!session?.user?.id) redirect(routes.login);
 
-  const [workout, templates] = await Promise.all([
+  const [workout, templates, latestWeight] = await Promise.all([
     getWorkout(id, session.user.id),
     getExerciseTemplates(),
+    prisma.bodyWeight.findFirst({
+      where: { userId: session.user.id },
+      orderBy: { date: "desc" },
+      select: { weight: true },
+    }),
   ]);
 
   if (!workout) notFound();
@@ -55,6 +61,7 @@ export default async function EditWorkoutPage({
         templates={templates}
         initialData={initialData}
         workoutId={id}
+        defaultBodyWeight={latestWeight?.weight ?? null}
       />
     </div>
   );

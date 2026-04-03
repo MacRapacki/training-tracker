@@ -1,4 +1,5 @@
 import { auth } from "@/feature/auth/auth";
+import { prisma } from "@/lib/prisma";
 import { getWorkout } from "@/lib/queries/workout-detail";
 import { deleteWorkout } from "@/app/actions/delete-workout";
 import { formatDate, formatTonnage } from "@/lib/date";
@@ -34,6 +35,12 @@ export default async function WorkoutDetailPage({
 
   const workout = await getWorkout(id, userId);
   if (!workout) notFound();
+
+  const closestWeight = await prisma.bodyWeight.findFirst({
+    where: { userId },
+    orderBy: { date: "desc" },
+    select: { weight: true },
+  });
 
   const totalSets = workout.exercises.reduce(
     (n, ex) => n + ex.sets.length,
@@ -129,6 +136,11 @@ export default async function WorkoutDetailPage({
             (s, set) => s + set.weight * set.reps,
             0
           );
+          const maxWeight = Math.max(...ex.sets.map((s) => s.weight).filter((w) => w > 0));
+          const bwRatio =
+            closestWeight && isFinite(maxWeight) && maxWeight > 0
+              ? maxWeight / closestWeight.weight
+              : null;
 
           return (
             <div
@@ -142,9 +154,16 @@ export default async function WorkoutDetailPage({
                     {exIdx + 1}
                   </span>
                   <div className="min-w-0">
-                    <p className="font-medium truncate">
-                      {ex.template?.name ?? "Exercise"}
-                    </p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium truncate">
+                        {ex.template?.name ?? "Exercise"}
+                      </p>
+                      {bwRatio != null && (
+                        <span className="text-muted-foreground bg-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums">
+                          {bwRatio.toFixed(2)}× BW
+                        </span>
+                      )}
+                    </div>
                     {ex.template?.equipment && (
                       <p className="text-[11px] text-muted-foreground uppercase">
                         {ex.template.equipment.toLowerCase()}
@@ -175,42 +194,46 @@ export default async function WorkoutDetailPage({
                 </div>
 
                 {ex.sets.map((set, i) => (
-                  <div
-                    key={set.id}
-                    className="grid grid-cols-[2rem_1fr_1fr_1fr] items-center gap-2 rounded-lg bg-muted/40 px-1 py-1.5"
-                  >
-                    <span className="text-center text-xs font-medium text-muted-foreground">
-                      {i + 1}
-                    </span>
-                    <span className="text-sm font-medium">
-                      {set.weight}
-                      <span className="text-xs text-muted-foreground ml-0.5">
-                        {set.unit}
+                  <div key={set.id} className="rounded-lg bg-muted/40 overflow-hidden">
+                    <div className="grid grid-cols-[2rem_1fr_1fr_1fr] items-center gap-2 px-1 py-1.5">
+                      <span className="text-center text-xs font-medium text-muted-foreground">
+                        {i + 1}
                       </span>
-                    </span>
-                    <span className="text-sm font-medium">
-                      {set.reps}
-                      <span className="text-xs text-muted-foreground ml-0.5">
-                        reps
+                      <span className="text-sm font-medium">
+                        {set.weight}
+                        <span className="text-xs text-muted-foreground ml-0.5">
+                          {set.unit}
+                        </span>
                       </span>
-                    </span>
-                    <div className="flex items-center gap-1.5">
-                      {set.quality ? (
-                        <>
-                          <span
-                            className={cn(
-                              "size-2.5 rounded-full",
-                              qualityStyle[set.quality].dot
-                            )}
-                          />
-                          <span className="text-xs text-muted-foreground">
-                            {qualityStyle[set.quality].label}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      )}
+                      <span className="text-sm font-medium">
+                        {set.reps}
+                        <span className="text-xs text-muted-foreground ml-0.5">
+                          reps
+                        </span>
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {set.quality ? (
+                          <>
+                            <span
+                              className={cn(
+                                "size-2.5 rounded-full",
+                                qualityStyle[set.quality].dot
+                              )}
+                            />
+                            <span className="text-xs text-muted-foreground">
+                              {qualityStyle[set.quality].label}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </div>
                     </div>
+                    {set.notes && (
+                      <div className="border-t border-border/50 px-3 py-1.5 pl-9">
+                        <p className="text-xs text-muted-foreground italic">{set.notes}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
 

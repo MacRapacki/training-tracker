@@ -1,6 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { Loader2 } from "lucide-react";
+import { formatTonnage } from "@/lib/date";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -148,30 +151,98 @@ export function ExerciseProgressChart({ data }: { data: ExercisePoint[] }) {
   );
 }
 
-export function ExerciseSelector({
+export function ExerciseSection({
   templates,
   selectedId,
+  exerciseProgress,
 }: {
   templates: UsedTemplate[];
   selectedId: string | undefined;
+  exerciseProgress: ExercisePoint[] | null;
 }) {
   const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  function navigate(val: string) {
+    startTransition(() => {
+      router.push(val ? `/progress?exercise=${val}` : "/progress");
+    });
+  }
 
   return (
-    <select
-      value={selectedId ?? ""}
-      onChange={(e) => {
-        const val = e.target.value;
-        router.push(val ? `/progress?exercise=${val}` : "/progress");
-      }}
-      className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-    >
-      <option value="">Select an exercise…</option>
-      {templates.map((t) => (
-        <option key={t.id} value={t.id}>
-          {t.name}
-        </option>
-      ))}
-    </select>
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold">Exercise Progress</h2>
+        <select
+          value={selectedId ?? ""}
+          onChange={(e) => navigate(e.target.value)}
+          disabled={isPending}
+          className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+        >
+          <option value="">Select an exercise…</option>
+          {templates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="relative">
+        {isPending && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-card/70 backdrop-blur-[1px]">
+            <Loader2 className="size-6 animate-spin text-muted-foreground" />
+          </div>
+        )}
+
+        {exerciseProgress === null ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            Select an exercise to see its progress
+          </p>
+        ) : exerciseProgress.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No data for this exercise
+          </p>
+        ) : (
+          <>
+            <div className="mb-3 flex gap-4 text-xs text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-full bg-zinc-400" />
+                Volume (bars, left axis)
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block size-2.5 rounded-full bg-zinc-900" />
+                Max weight (line, right axis)
+              </span>
+            </div>
+            <ExerciseProgressChart data={exerciseProgress} />
+            <div className="mt-4 grid grid-cols-3 gap-3 border-t border-border pt-4">
+              <div>
+                <p className="text-[11px] text-muted-foreground">Best weight</p>
+                <p className="mt-0.5 text-sm font-semibold">
+                  {Math.max(...exerciseProgress.map((p) => p.maxWeight))}kg
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">
+                  Best session volume
+                </p>
+                <p className="mt-0.5 text-sm font-semibold">
+                  {formatTonnage(
+                    Math.max(...exerciseProgress.map((p) => p.tonnage))
+                  )}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-muted-foreground">Sessions</p>
+                <p className="mt-0.5 text-sm font-semibold">
+                  {exerciseProgress.length}
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
   );
 }

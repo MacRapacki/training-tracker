@@ -14,6 +14,7 @@ import {
   ChevronUp,
   Search,
   Loader2,
+  MessageSquare,
 } from "lucide-react";
 
 type Template = { id: string; name: string; equipment: string };
@@ -52,6 +53,12 @@ const defaultExercise = (): ExerciseRow => ({
   expanded: true,
 });
 
+function bwRatio(ex: ExerciseRow, bw: number): number | null {
+  const max = Math.max(...ex.sets.map((s) => Number(s.weight)).filter((w) => w > 0));
+  if (!isFinite(max) || max <= 0 || bw <= 0) return null;
+  return max / bw;
+}
+
 const qualityConfig = {
   GREEN: { label: "Good", color: "bg-green-500" },
   YELLOW: { label: "OK", color: "bg-yellow-400" },
@@ -69,21 +76,27 @@ export function WorkoutForm({
   templates,
   initialData,
   workoutId,
+  defaultBodyWeight,
 }: {
   templates: Template[];
   initialData?: InitialData;
   workoutId?: string;
+  defaultBodyWeight?: number | null;
 }) {
   const today = new Date().toISOString().slice(0, 10);
 
   const [name, setName] = useState(initialData?.name ?? "");
   const [date, setDate] = useState(initialData?.date ?? today);
   const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [bodyWeight, setBodyWeight] = useState(
+    defaultBodyWeight != null ? String(defaultBodyWeight) : ""
+  );
   const [exercises, setExercises] = useState<ExerciseRow[]>(
     initialData?.exercises ?? [defaultExercise()]
   );
   const [search, setSearch] = useState<Record<string, string>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [expandedSetNotes, setExpandedSetNotes] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
@@ -112,6 +125,15 @@ export function WorkoutForm({
     updateExercise(exId, { templateId: t.id, templateName: t.name });
     setSearch((prev) => ({ ...prev, [exId]: "" }));
     setOpenDropdownId(null);
+  }
+
+  function toggleSetNote(key: string) {
+    setExpandedSetNotes((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   }
 
   // ── Set helpers ───────────────────────────────────────────────
@@ -160,11 +182,14 @@ export function WorkoutForm({
       return setError("All exercises need a name.");
     if (exercises.some((ex) => ex.sets.length === 0))
       return setError("Each exercise needs at least one set.");
+    if (exercises.some((ex) => ex.sets.some((s) => Number(s.reps) < 1)))
+      return setError("All sets need at least 1 rep.");
 
     const payload: SaveWorkoutInput = {
       name: name.trim(),
       date,
       notes: notes.trim() || undefined,
+      bodyWeight: bodyWeight ? Number(bodyWeight) : undefined,
       exercises: exercises.map((ex, i) => ({
         templateId: ex.templateId,
         customName: ex.templateName,
@@ -229,6 +254,22 @@ export function WorkoutForm({
         </div>
         <div>
           <label className="text-muted-foreground mb-1 block text-xs font-medium">
+            Body weight (kg, optional)
+          </label>
+          <input
+            type="number"
+            inputMode="decimal"
+            value={bodyWeight}
+            onChange={(e) => setBodyWeight(e.target.value)}
+            placeholder="e.g. 75"
+            min={20}
+            max={500}
+            step={0.1}
+            className="border-border bg-background focus:ring-ring rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="text-muted-foreground mb-1 block text-xs font-medium">
             Notes (optional)
           </label>
           <textarea
@@ -246,6 +287,8 @@ export function WorkoutForm({
         const q = search[ex.id] ?? "";
         const showDropdown =
           !ex.templateId && ex.expanded && openDropdownId === ex.id;
+        const bw = bodyWeight ? Number(bodyWeight) : 0;
+        const ratio = bwRatio(ex, bw);
 
         return (
           <div key={ex.id} className="border-border bg-card rounded-xl border">
@@ -333,6 +376,12 @@ export function WorkoutForm({
                 )}
               </div>
 
+              {ratio != null && (
+                <span className="text-muted-foreground bg-muted shrink-0 rounded-md px-1.5 py-0.5 text-[10px] font-medium tabular-nums">
+                  {ratio.toFixed(2)}× BW
+                </span>
+              )}
+
               <div className="ml-1 flex shrink-0 items-center gap-1">
                 <button
                   onClick={() => removeExercise(ex.id)}
@@ -370,7 +419,7 @@ export function WorkoutForm({
                 />
 
                 {/* Sets header */}
-                <div className="text-muted-foreground grid grid-cols-[2rem_1fr_1fr_4rem_1.5rem] gap-2 px-1 text-[10px] font-medium uppercase">
+                <div className="text-muted-foreground grid grid-cols-[2rem_1fr_1fr_4rem_3rem] gap-2 px-1 text-[10px] font-medium uppercase">
                   <span>#</span>
                   <span>Weight (kg)</span>
                   <span>Reps</span>
@@ -379,66 +428,95 @@ export function WorkoutForm({
                 </div>
 
                 {/* Sets */}
-                {ex.sets.map((s, i) => (
-                  <div
-                    key={i}
-                    className="grid grid-cols-[2rem_1fr_1fr_4rem_1.5rem] items-center gap-2"
-                  >
-                    <span className="text-muted-foreground text-center text-xs font-medium">
-                      {i + 1}
-                    </span>
-                    <input
-                      type="number"
-                      inputMode="decimal"
-                      value={s.weight}
-                      onChange={(e) =>
-                        updateSet(ex.id, i, { weight: e.target.value })
-                      }
-                      placeholder="0"
-                      min={0}
-                      className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
-                    />
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      value={s.reps}
-                      onChange={(e) =>
-                        updateSet(ex.id, i, { reps: e.target.value })
-                      }
-                      placeholder="0"
-                      min={0}
-                      className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
-                    />
-                    {/* Quality toggle */}
-                    <div className="flex justify-center gap-1">
-                      {(["GREEN", "YELLOW", "RED"] as const).map((q) => (
-                        <button
-                          key={q}
-                          title={qualityConfig[q].label}
-                          onClick={() =>
-                            updateSet(ex.id, i, {
-                              quality: s.quality === q ? null : q,
-                            })
+                {ex.sets.map((s, i) => {
+                  const noteKey = `${ex.id}-${i}`;
+                  const showNote = s.notes !== "" || expandedSetNotes.has(noteKey);
+                  return (
+                    <div key={i} className="space-y-1">
+                      <div className="grid grid-cols-[2rem_1fr_1fr_4rem_3rem] items-center gap-2">
+                        <span className="text-muted-foreground text-center text-xs font-medium">
+                          {i + 1}
+                        </span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          value={s.weight}
+                          onChange={(e) =>
+                            updateSet(ex.id, i, { weight: e.target.value })
                           }
-                          className={cn(
-                            "size-3.5 rounded-full transition-all",
-                            qualityConfig[q].color,
-                            s.quality === q
-                              ? "opacity-100 ring-2 ring-current ring-offset-1"
-                              : "opacity-30"
-                          )}
+                          placeholder="0"
+                          min={0}
+                          className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
                         />
-                      ))}
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          value={s.reps}
+                          onChange={(e) =>
+                            updateSet(ex.id, i, { reps: e.target.value })
+                          }
+                          placeholder="0"
+                          min={0}
+                          className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
+                        />
+                        {/* Quality toggle */}
+                        <div className="flex justify-center gap-1">
+                          {(["GREEN", "YELLOW", "RED"] as const).map((q) => (
+                            <button
+                              key={q}
+                              title={qualityConfig[q].label}
+                              onClick={() =>
+                                updateSet(ex.id, i, {
+                                  quality: s.quality === q ? null : q,
+                                })
+                              }
+                              className={cn(
+                                "size-3.5 rounded-full transition-all",
+                                qualityConfig[q].color,
+                                s.quality === q
+                                  ? "opacity-100 ring-2 ring-current ring-offset-1"
+                                  : "opacity-30"
+                              )}
+                            />
+                          ))}
+                        </div>
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => toggleSetNote(noteKey)}
+                            title="Add note"
+                            className={cn(
+                              "transition-colors",
+                              showNote
+                                ? "text-foreground"
+                                : "text-muted-foreground hover:text-foreground"
+                            )}
+                          >
+                            <MessageSquare className="size-3.5" />
+                          </button>
+                          <button
+                            onClick={() => removeSet(ex.id, i)}
+                            disabled={ex.sets.length === 1}
+                            className="text-muted-foreground hover:text-destructive disabled:opacity-20"
+                          >
+                            <Trash2 className="size-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      {showNote && (
+                        <div className="pl-8">
+                          <input
+                            value={s.notes}
+                            onChange={(e) =>
+                              updateSet(ex.id, i, { notes: e.target.value })
+                            }
+                            placeholder="Note for this set…"
+                            className="border-border bg-background focus:ring-ring w-full rounded-lg border px-3 py-1.5 text-xs focus:ring-2 focus:outline-none"
+                          />
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => removeSet(ex.id, i)}
-                      disabled={ex.sets.length === 1}
-                      className="text-muted-foreground hover:text-destructive disabled:opacity-20"
-                    >
-                      <Trash2 className="size-3.5" />
-                    </button>
-                  </div>
-                ))}
+                  );
+                })}
 
                 <button
                   onClick={() => addSet(ex.id)}

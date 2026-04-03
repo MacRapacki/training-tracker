@@ -1,8 +1,22 @@
 import { getExerciseTemplates } from "@/app/actions/workouts";
+import { auth } from "@/feature/auth/auth";
+import { prisma } from "@/lib/prisma";
 import { WorkoutForm } from "./workout-form";
 
 export default async function NewWorkoutPage() {
-  const templates = await getExerciseTemplates();
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  const [templates, latestWeight] = await Promise.all([
+    getExerciseTemplates(),
+    userId
+      ? prisma.bodyWeight.findFirst({
+          where: { userId },
+          orderBy: { date: "desc" },
+          select: { weight: true },
+        })
+      : null,
+  ]);
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6 md:px-6 md:py-8">
@@ -14,7 +28,10 @@ export default async function NewWorkoutPage() {
           Log your exercises and sets
         </p>
       </div>
-      <WorkoutForm templates={templates} />
+      <WorkoutForm
+        templates={templates}
+        defaultBodyWeight={latestWeight?.weight ?? null}
+      />
     </div>
   );
 }

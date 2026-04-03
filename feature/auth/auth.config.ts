@@ -1,8 +1,8 @@
 import type { NextAuthConfig } from "next-auth";
 import { routes } from "@/lib/routes";
 
-// Edge-safe config — bez importów Node.js (bez Prismy, bez pg)
-// Używany przez middleware do weryfikacji JWT
+// Edge-safe config — no Node.js imports (no Prisma, no pg)
+// Used by middleware to verify JWT
 export const authConfig: NextAuthConfig = {
   session: { strategy: "jwt" },
   providers: [],

@@ -62,10 +62,10 @@ model VerificationToken {
 }
 
 // ---------------------------------------------------------------------------
-// Baza ćwiczeń
+// Exercise library
 // ---------------------------------------------------------------------------
 
-// Kategoria sprzętu
+// Equipment category
 enum EquipmentType {
   BARBELL
   DUMBBELL
@@ -75,7 +75,7 @@ enum EquipmentType {
   OTHER
 }
 
-// Grupa mięśniowa
+// Muscle group
 enum MuscleGroup {
   CHEST
   BACK
@@ -91,15 +91,15 @@ enum MuscleGroup {
   OTHER
 }
 
-// Szablon ćwiczenia — globalne (userId null) lub stworzone przez usera
+// Exercise template — global (userId null) or created by the user
 model ExerciseTemplate {
   id            String        @id @default(cuid())
   name          String
   equipment     EquipmentType @default(OTHER)
   primaryMuscle MuscleGroup   @default(OTHER)
   notes         String?
-  isGlobal      Boolean       @default(false) // true = wbudowane, false = własne usera
-  userId        String? // null gdy isGlobal = true
+  isGlobal      Boolean       @default(false) // true = built-in, false = user-created
+  userId        String? // null when isGlobal = true
   user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
 
@@ -109,7 +109,7 @@ model ExerciseTemplate {
 }
 
 // ---------------------------------------------------------------------------
-// Treningi
+// Workouts
 // ---------------------------------------------------------------------------
 
 model Workout {
@@ -127,8 +127,8 @@ model Exercise {
   id                 String            @id @default(cuid())
   order              Int               @default(0)
   notes              String?
-  // Ustawienia maszyny (opcjonalne)
-  machineSettings    String? // np. "siedzenie: 4, oparcie: 2"
+  // Machine settings (optional)
+  machineSettings    String? // e.g. "seat: 4, backrest: 2"
   workoutId          String
   workout            Workout           @relation(fields: [workoutId], references: [id], onDelete: Cascade)
   templateId         String?
@@ -136,11 +136,11 @@ model Exercise {
   sets               Set[]
 }
 
-// Jakość techniki w secie
+// Set technique quality
 enum SetQuality {
-  GREEN  // dobra technika
-  YELLOW // przeciętna
-  RED    // zła / zbyt ciężko
+  GREEN  // good technique
+  YELLOW // average
+  RED    // poor / too heavy
 }
 
 model Set {
@@ -156,7 +156,7 @@ model Set {
 }
 
 // ---------------------------------------------------------------------------
-// Dziennik ciała
+// Body log
 // ---------------------------------------------------------------------------
 
 model BodyWeight {
@@ -167,12 +167,12 @@ model BodyWeight {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, date]) // jeden wpis dziennie
+  @@unique([userId, date]) // one entry per day
 }
 
 model WaterIntake {
   id        String   @id @default(cuid())
-  amount    Float // w ml
+  amount    Float // in ml
   date      DateTime @default(now())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
