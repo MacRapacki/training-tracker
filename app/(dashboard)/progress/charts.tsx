@@ -59,8 +59,10 @@ export function VolumeChart({ data }: { data: VolumePoint[] }) {
           width={52}
         />
         <Tooltip
-          formatter={(v: number) => [fmtKg(v), "Volume"]}
-          labelFormatter={fmtDate}
+          formatter={(v: unknown) => [fmtKg(Number(v)), "Volume"]}
+          labelFormatter={(label: unknown) =>
+            typeof label === "string" ? fmtDate(label) : String(label)
+          }
           contentStyle={{
             borderRadius: "0.5rem",
             border: "1px solid #e4e4e7",
@@ -112,11 +114,13 @@ export function ExerciseProgressChart({ data }: { data: ExercisePoint[] }) {
           width={44}
         />
         <Tooltip
-          formatter={(v: number, name: string) => [
-            name === "tonnage" ? fmtKg(v) : `${v}kg`,
+          formatter={(v: unknown, name: unknown) => [
+            name === "tonnage" ? fmtKg(Number(v)) : `${Number(v)}kg`,
             name === "tonnage" ? "Volume" : "Max weight",
           ]}
-          labelFormatter={fmtDate}
+          labelFormatter={(label: unknown) =>
+            typeof label === "string" ? fmtDate(label) : String(label)
+          }
           contentStyle={{
             borderRadius: "0.5rem",
             border: "1px solid #e4e4e7",
