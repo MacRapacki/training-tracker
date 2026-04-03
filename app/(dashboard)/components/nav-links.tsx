@@ -9,12 +9,13 @@ import {
   Scale,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { routes } from "@/lib/routes";
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/workouts", label: "Workouts", icon: Dumbbell },
-  { href: "/progress", label: "Progress", icon: TrendingUp },
-  { href: "/body", label: "Body", icon: Scale },
+  { href: routes.dashboard, label: "Dashboard", icon: LayoutDashboard },
+  { href: routes.workouts, label: "Workouts", icon: Dumbbell },
+  { href: routes.progress, label: "Progress", icon: TrendingUp },
+  { href: routes.body, label: "Body", icon: Scale },
 ];
 
 export function SidebarNavLinks() {
@@ -31,7 +32,7 @@ export function SidebarNavLinks() {
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
               active
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                ? "bg-sidebar-primary text-sidebar-primary-foreground font-medium"
                 : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
             )}
           >
@@ -62,9 +63,9 @@ export function BottomNav() {
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
-            <Icon
-              className={cn("size-5", active && "stroke-[2.5px]")}
-            />
+            <div className={cn("rounded-lg p-1.5 transition-colors", active && "bg-foreground text-background")}>
+              <Icon className="size-5" />
+            </div>
             {label}
           </Link>
         );

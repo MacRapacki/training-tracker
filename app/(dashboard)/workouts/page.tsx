@@ -4,11 +4,12 @@ import { formatDate, formatTonnage } from "@/lib/date";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Plus, ChevronRight, Dumbbell } from "lucide-react";
+import { routes } from "@/lib/routes";
 
 export default async function WorkoutsPage() {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) redirect("/login");
+  if (!userId) redirect(routes.login);
 
   const workouts = await getWorkouts(userId);
 
@@ -19,7 +20,7 @@ export default async function WorkoutsPage() {
           Workouts
         </h1>
         <Link
-          href="/workouts/new"
+          href={routes.workoutNew}
           className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           <Plus className="size-4" />
@@ -32,7 +33,7 @@ export default async function WorkoutsPage() {
           <Dumbbell className="mb-4 size-10 text-muted-foreground/40" />
           <p className="font-medium">No workouts yet</p>
           <Link
-            href="/workouts/new"
+            href={routes.workoutNew}
             className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
           >
             Log a Workout
@@ -43,7 +44,7 @@ export default async function WorkoutsPage() {
           {workouts.map((workout) => (
             <Link
               key={workout.id}
-              href={`/workouts/${workout.id}`}
+              href={routes.workout(workout.id)}
               className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-colors hover:bg-muted/50"
             >
               <div className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-muted px-2 py-1.5 text-center">

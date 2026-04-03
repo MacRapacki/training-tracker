@@ -3,6 +3,7 @@ import { logout } from "@/app/actions/auth";
 import Link from "next/link";
 import { Dumbbell, LogOut, Plus } from "lucide-react";
 import { SidebarNavLinks, BottomNav } from "./components/nav-links";
+import { routes } from "@/lib/routes";
 
 export default async function DashboardLayout({
   children,
@@ -31,8 +32,8 @@ export default async function DashboardLayout({
         {/* New workout */}
         <div className="px-3 pt-4">
           <Link
-            href="/workouts/new"
-            className="flex w-full items-center gap-2 rounded-lg bg-sidebar-primary px-3 py-2 text-sm font-medium text-sidebar-primary-foreground transition-opacity hover:opacity-90"
+            href={routes.workoutNew}
+            className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-sidebar-primary px-3 py-2 text-sm font-semibold text-sidebar-primary transition-colors hover:bg-sidebar-primary hover:text-sidebar-primary-foreground"
           >
             <Plus className="size-4" />
             New Workout
@@ -89,7 +90,7 @@ export default async function DashboardLayout({
             <BottomNav />
             {/* FAB — new workout */}
             <Link
-              href="/workouts/new"
+              href={routes.workoutNew}
               className="absolute -top-6 left-1/2 flex size-12 -translate-x-1/2 items-center justify-center rounded-full bg-foreground text-background shadow-lg transition-transform active:scale-95"
               aria-label="New workout"
             >

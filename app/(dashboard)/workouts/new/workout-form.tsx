@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { saveWorkout, type SaveWorkoutInput } from "@/app/actions/workouts";
+import {
+  saveWorkout,
+  updateWorkout,
+  type SaveWorkoutInput,
+} from "@/app/actions/workouts";
 import { cn } from "@/lib/utils";
 import {
   Plus,
@@ -54,13 +58,30 @@ const qualityConfig = {
   RED: { label: "Hard", color: "bg-red-500" },
 } as const;
 
-export function NewWorkoutForm({ templates }: { templates: Template[] }) {
+type InitialData = {
+  name: string;
+  date: string;
+  notes: string;
+  exercises: ExerciseRow[];
+};
+
+export function WorkoutForm({
+  templates,
+  initialData,
+  workoutId,
+}: {
+  templates: Template[];
+  initialData?: InitialData;
+  workoutId?: string;
+}) {
   const today = new Date().toISOString().slice(0, 10);
 
-  const [name, setName] = useState("");
-  const [date, setDate] = useState(today);
-  const [notes, setNotes] = useState("");
-  const [exercises, setExercises] = useState<ExerciseRow[]>([defaultExercise()]);
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [date, setDate] = useState(initialData?.date ?? today);
+  const [notes, setNotes] = useState(initialData?.notes ?? "");
+  const [exercises, setExercises] = useState<ExerciseRow[]>(
+    initialData?.exercises ?? [defaultExercise()]
+  );
   const [search, setSearch] = useState<Record<string, string>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -124,9 +145,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
   function removeSet(exId: string, i: number) {
     setExercises((prev) =>
       prev.map((ex) =>
-        ex.id === exId
-          ? { ...ex, sets: ex.sets.filter((_, j) => j !== i) }
-          : ex
+        ex.id === exId ? { ...ex, sets: ex.sets.filter((_, j) => j !== i) } : ex
       )
     );
   }
@@ -163,7 +182,9 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
     };
 
     startTransition(async () => {
-      const result = await saveWorkout(payload);
+      const result = workoutId
+        ? await updateWorkout(workoutId, payload)
+        : await saveWorkout(payload);
       if (result?.error) setError(result.error);
     });
   }
@@ -173,7 +194,9 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
   function filtered(exId: string) {
     const q = (search[exId] ?? "").toLowerCase();
     if (!q) return templates.slice(0, 8);
-    return templates.filter((t) => t.name.toLowerCase().includes(q)).slice(0, 8);
+    return templates
+      .filter((t) => t.name.toLowerCase().includes(q))
+      .slice(0, 8);
   }
 
   // ── Render ────────────────────────────────────────────────────
@@ -181,31 +204,31 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
   return (
     <div className="space-y-5">
       {/* Workout meta */}
-      <div className="space-y-3 rounded-xl border border-border bg-card p-4">
+      <div className="border-border bg-card space-y-3 rounded-xl border p-4">
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label className="text-muted-foreground mb-1 block text-xs font-medium">
             Workout name
           </label>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="e.g. Push Day, Leg Day…"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-border bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label className="text-muted-foreground mb-1 block text-xs font-medium">
             Date
           </label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-border bg-background focus:ring-ring rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
         <div>
-          <label className="mb-1 block text-xs font-medium text-muted-foreground">
+          <label className="text-muted-foreground mb-1 block text-xs font-medium">
             Notes (optional)
           </label>
           <textarea
@@ -213,7 +236,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
             placeholder="How did it go?"
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+            className="border-border bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
       </div>
@@ -221,14 +244,14 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
       {/* Exercises */}
       {exercises.map((ex, exIdx) => {
         const q = search[ex.id] ?? "";
-        const showDropdown = !ex.templateId && ex.expanded && openDropdownId === ex.id;
+        const showDropdown =
+          !ex.templateId && ex.expanded && openDropdownId === ex.id;
 
         return (
-          <div key={ex.id} className="rounded-xl border border-border bg-card">
-
+          <div key={ex.id} className="border-border bg-card rounded-xl border">
             {/* Exercise header */}
-            <div className="flex items-center gap-2 rounded-t-xl px-4 py-3 border-b border-border">
-              <span className="text-xs font-semibold text-muted-foreground w-5 shrink-0">
+            <div className="border-border flex items-center gap-2 rounded-t-xl border-b px-4 py-3">
+              <span className="text-muted-foreground w-5 shrink-0 text-xs font-semibold">
                 {exIdx + 1}
               </span>
 
@@ -242,20 +265,23 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                       });
                       setOpenDropdownId(ex.id);
                     }}
-                    className="flex w-full items-center justify-between rounded-lg bg-muted px-3 py-1.5 text-sm font-medium"
+                    className="bg-muted flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-sm font-medium"
                   >
                     <span className="truncate">{ex.templateName}</span>
-                    <span className="text-xs text-muted-foreground ml-2 shrink-0">
+                    <span className="text-muted-foreground ml-2 shrink-0 text-xs">
                       change
                     </span>
                   </button>
                 ) : (
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                    <Search className="text-muted-foreground absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2" />
                     <input
                       value={q}
                       onChange={(e) => {
-                        setSearch((prev) => ({ ...prev, [ex.id]: e.target.value }));
+                        setSearch((prev) => ({
+                          ...prev,
+                          [ex.id]: e.target.value,
+                        }));
                         setOpenDropdownId(ex.id);
                       }}
                       onFocus={() => {
@@ -263,52 +289,51 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                         setOpenDropdownId(ex.id);
                       }}
                       placeholder="Search exercise…"
-                      className="w-full rounded-lg border border-border bg-background py-1.5 pl-8 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                      className="border-border bg-background focus:ring-ring w-full rounded-lg border py-1.5 pr-3 pl-8 text-sm focus:ring-2 focus:outline-none"
                     />
                     {showDropdown && (
                       <>
-                      <div
-                        className="fixed inset-0 z-10"
-                        onClick={() => setOpenDropdownId(null)}
-                      />
-                      <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-lg border border-border bg-card shadow-lg overflow-y-auto max-h-56">
-                        {filtered(ex.id).map((t) => (
-                          <button
-                            key={t.id}
-                            onClick={() => selectTemplate(ex.id, t)}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                          >
-                            <span className="flex-1 truncate">{t.name}</span>
-                            <span className="text-[10px] text-muted-foreground uppercase shrink-0">
-                              {t.equipment.toLowerCase()}
-                            </span>
-                          </button>
-                        ))}
-                        {q && (
-                          <button
-                            onClick={() => {
-                              updateExercise(ex.id, {
-                                templateId: null,
-                                templateName: q,
-                              });
-                              setSearch((prev) => ({ ...prev, [ex.id]: "" }));
-                              setOpenDropdownId(null);
-                            }}
-                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-muted"
-                          >
-                            <Plus className="size-3.5 text-muted-foreground" />
-                            Add &ldquo;{q}&rdquo;
-                          </button>
-                        )}
-                      </div>
+                        <div
+                          className="fixed inset-0 z-10"
+                          onClick={() => setOpenDropdownId(null)}
+                        />
+                        <div className="border-border bg-card absolute top-full right-0 left-0 z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border shadow-lg">
+                          {filtered(ex.id).map((t) => (
+                            <button
+                              key={t.id}
+                              onClick={() => selectTemplate(ex.id, t)}
+                              className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                            >
+                              <span className="flex-1 truncate">{t.name}</span>
+                              <span className="text-muted-foreground shrink-0 text-[10px] uppercase">
+                                {t.equipment.toLowerCase()}
+                              </span>
+                            </button>
+                          ))}
+                          {q && (
+                            <button
+                              onClick={() => {
+                                updateExercise(ex.id, {
+                                  templateId: null,
+                                  templateName: q,
+                                });
+                                setSearch((prev) => ({ ...prev, [ex.id]: "" }));
+                                setOpenDropdownId(null);
+                              }}
+                              className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                            >
+                              <Plus className="text-muted-foreground size-3.5" />
+                              Add &ldquo;{q}&rdquo;
+                            </button>
+                          )}
+                        </div>
                       </>
-
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="ml-1 flex items-center gap-1 shrink-0">
+              <div className="ml-1 flex shrink-0 items-center gap-1">
                 <button
                   onClick={() => removeExercise(ex.id)}
                   className="rounded-md p-1.5 text-red-400 transition-colors hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/50"
@@ -316,12 +341,12 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                 >
                   <Trash2 className="size-4" />
                 </button>
-                <div className="w-px h-4 bg-border mx-1" />
+                <div className="bg-border mx-1 h-4 w-px" />
                 <button
                   onClick={() =>
                     updateExercise(ex.id, { expanded: !ex.expanded })
                   }
-                  className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="text-muted-foreground hover:bg-muted hover:text-foreground rounded-md p-1.5 transition-colors"
                 >
                   {ex.expanded ? (
                     <ChevronUp className="size-4" />
@@ -333,7 +358,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
             </div>
 
             {ex.expanded && (
-              <div className="p-4 space-y-3">
+              <div className="space-y-3 p-4">
                 {/* Machine settings */}
                 <input
                   value={ex.machineSettings}
@@ -341,11 +366,11 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                     updateExercise(ex.id, { machineSettings: e.target.value })
                   }
                   placeholder="Machine settings (optional)"
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="border-border bg-background focus:ring-ring w-full rounded-lg border px-3 py-2 text-xs focus:ring-2 focus:outline-none"
                 />
 
                 {/* Sets header */}
-                <div className="grid grid-cols-[2rem_1fr_1fr_4rem_1.5rem] gap-2 px-1 text-[10px] font-medium uppercase text-muted-foreground">
+                <div className="text-muted-foreground grid grid-cols-[2rem_1fr_1fr_4rem_1.5rem] gap-2 px-1 text-[10px] font-medium uppercase">
                   <span>#</span>
                   <span>Weight (kg)</span>
                   <span>Reps</span>
@@ -359,7 +384,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                     key={i}
                     className="grid grid-cols-[2rem_1fr_1fr_4rem_1.5rem] items-center gap-2"
                   >
-                    <span className="text-center text-xs font-medium text-muted-foreground">
+                    <span className="text-muted-foreground text-center text-xs font-medium">
                       {i + 1}
                     </span>
                     <input
@@ -370,7 +395,8 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                         updateSet(ex.id, i, { weight: e.target.value })
                       }
                       placeholder="0"
-                      className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring"
+                      min={0}
+                      className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
                     />
                     <input
                       type="number"
@@ -380,13 +406,12 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                         updateSet(ex.id, i, { reps: e.target.value })
                       }
                       placeholder="0"
-                      className="w-full rounded-lg border border-border bg-background px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-ring"
+                      min={0}
+                      className="border-border bg-background focus:ring-ring w-full rounded-lg border px-2 py-2 text-center text-sm focus:ring-2 focus:outline-none"
                     />
                     {/* Quality toggle */}
-                    <div className="flex gap-1 justify-center">
-                      {(
-                        ["GREEN", "YELLOW", "RED"] as const
-                      ).map((q) => (
+                    <div className="flex justify-center gap-1">
+                      {(["GREEN", "YELLOW", "RED"] as const).map((q) => (
                         <button
                           key={q}
                           title={qualityConfig[q].label}
@@ -399,7 +424,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
                             "size-3.5 rounded-full transition-all",
                             qualityConfig[q].color,
                             s.quality === q
-                              ? "opacity-100 ring-2 ring-offset-1 ring-current"
+                              ? "opacity-100 ring-2 ring-current ring-offset-1"
                               : "opacity-30"
                           )}
                         />
@@ -417,7 +442,7 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
 
                 <button
                   onClick={() => addSet(ex.id)}
-                  className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-border px-3 py-2 text-xs text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
+                  className="border-border text-muted-foreground hover:border-foreground hover:text-foreground flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed px-3 py-2 text-xs transition-colors"
                 >
                   <Plus className="size-3.5" />
                   Add set
@@ -431,14 +456,14 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
       {/* Add exercise */}
       <button
         onClick={addExercise}
-        className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-border py-3.5 text-sm text-muted-foreground hover:border-foreground hover:text-foreground transition-colors"
+        className="border-border text-muted-foreground hover:border-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-3.5 text-sm transition-colors"
       >
         <Plus className="size-4" />
         Add Exercise
       </button>
 
       {error && (
-        <p className="rounded-lg bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <p className="bg-destructive/10 text-destructive rounded-lg px-4 py-2 text-sm">
           {error}
         </p>
       )}
@@ -447,13 +472,15 @@ export function NewWorkoutForm({ templates }: { templates: Template[] }) {
       <button
         onClick={handleSubmit}
         disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+        className="bg-primary text-primary-foreground flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold transition-opacity hover:opacity-90 disabled:opacity-50"
       >
         {isPending ? (
           <>
             <Loader2 className="size-4 animate-spin" />
             Saving…
           </>
+        ) : workoutId ? (
+          "Update Workout"
         ) : (
           "Save Workout"
         )}

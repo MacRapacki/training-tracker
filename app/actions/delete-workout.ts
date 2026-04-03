@@ -3,6 +3,7 @@
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/feature/auth/auth";
 import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 export async function deleteWorkout(id: string) {
   const session = await auth();
@@ -10,5 +11,5 @@ export async function deleteWorkout(id: string) {
   if (!userId) return;
 
   await prisma.workout.deleteMany({ where: { id, userId } });
-  redirect("/dashboard");
+  redirect(routes.dashboard);
 }

@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { register } from "@/app/actions/auth";
 import Link from "next/link";
+import { routes } from "@/lib/routes";
 
 export default function RegisterPage() {
   const [state, action, pending] = useActionState(register, undefined);
@@ -81,7 +82,7 @@ export default function RegisterPage() {
 
         <p className="mt-4 text-center text-sm text-gray-500">
           Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 hover:underline">
+          <Link href={routes.login} className="text-blue-600 hover:underline">
             Sign in
           </Link>
         </p>

@@ -1,5 +1,5 @@
 import { getExerciseTemplates } from "@/app/actions/workouts";
-import { NewWorkoutForm } from "./workout-form";
+import { WorkoutForm } from "./workout-form";
 
 export default async function NewWorkoutPage() {
   const templates = await getExerciseTemplates();
@@ -14,7 +14,7 @@ export default async function NewWorkoutPage() {
           Log your exercises and sets
         </p>
       </div>
-      <NewWorkoutForm templates={templates} />
+      <WorkoutForm templates={templates} />
     </div>
   );
 }

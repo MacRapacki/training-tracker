@@ -4,8 +4,10 @@ import { deleteWorkout } from "@/app/actions/delete-workout";
 import { formatDate, formatTonnage } from "@/lib/date";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
+import { routes } from "@/lib/routes";
 import {
   ArrowLeft,
+  Pencil,
   Trash2,
   Dumbbell,
   Weight,
@@ -28,7 +30,7 @@ export default async function WorkoutDetailPage({
   const { id } = await params;
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) redirect("/login");
+  if (!userId) redirect(routes.login);
 
   const workout = await getWorkout(id, userId);
   if (!workout) notFound();
@@ -48,26 +50,35 @@ export default async function WorkoutDetailPage({
       {/* Back + actions */}
       <div className="mb-6 flex items-center justify-between">
         <Link
-          href="/dashboard"
+          href={routes.dashboard}
           className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="size-4" />
           Back
         </Link>
-        <form
-          action={async () => {
-            "use server";
-            await deleteWorkout(id);
-          }}
-        >
-          <button
-            type="submit"
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/50"
+        <div className="flex items-center gap-2">
+          <Link
+            href={routes.workoutEdit(id)}
+            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <Trash2 className="size-4" />
-            Delete
-          </button>
-        </form>
+            <Pencil className="size-4" />
+            Edit
+          </Link>
+          <form
+            action={async () => {
+              "use server";
+              await deleteWorkout(id);
+            }}
+          >
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-950/50"
+            >
+              <Trash2 className="size-4" />
+              Delete
+            </button>
+          </form>
+        </div>
       </div>
 
       {/* Header */}

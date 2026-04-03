@@ -1,14 +1,26 @@
 import { auth } from "@/feature/auth/auth";
-import { getDashboardStats, getWorkouts, type WorkoutWithStats } from "@/lib/queries/workouts";
+import {
+  getDashboardStats,
+  getWorkouts,
+  type WorkoutWithStats,
+} from "@/lib/queries/workouts";
 import { formatRelativeDate, formatTonnage } from "@/lib/date";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Dumbbell, Calendar, Weight, Flame, ChevronRight, Plus } from "lucide-react";
+import {
+  Dumbbell,
+  Calendar,
+  Weight,
+  Flame,
+  ChevronRight,
+  Plus,
+} from "lucide-react";
+import { routes } from "@/lib/routes";
 
 export default async function DashboardPage() {
   const session = await auth();
   const userId = session?.user?.id;
-  if (!userId) redirect("/login");
+  if (!userId) redirect(routes.login);
 
   const [stats, workouts] = await Promise.all([
     getDashboardStats(userId),
@@ -26,7 +38,7 @@ export default async function DashboardPage() {
         <h1 className="text-xl font-bold tracking-tight md:text-2xl">
           {greeting}, {session?.user?.name?.split(" ")[0] ?? "Athlete"} 👋
         </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
+        <p className="text-muted-foreground mt-1 text-sm">
           {new Intl.DateTimeFormat("en-US", {
             weekday: "long",
             month: "long",
@@ -56,9 +68,7 @@ export default async function DashboardPage() {
           icon={<Flame className="size-4" />}
           label="Last Workout"
           value={
-            workouts[0]
-              ? formatRelativeDate(new Date(workouts[0].date))
-              : "—"
+            workouts[0] ? formatRelativeDate(new Date(workouts[0].date)) : "—"
           }
         />
       </div>
@@ -67,8 +77,8 @@ export default async function DashboardPage() {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base font-semibold">Recent Workouts</h2>
         <Link
-          href="/workouts/new"
-          className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          href={routes.workoutNew}
+          className="border-sidebar-primary text-sidebar-primary hover:bg-sidebar-primary hover:text-sidebar-primary-foreground flex w-fit items-center justify-center gap-2 rounded-full border-2 px-3 py-2 text-sm font-semibold transition-colors"
         >
           <Plus className="size-3.5" />
           New
@@ -82,17 +92,17 @@ export default async function DashboardPage() {
           {workouts.map((workout: WorkoutWithStats) => (
             <Link
               key={workout.id}
-              href={`/workouts/${workout.id}`}
-              className="group flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3.5 transition-colors hover:bg-muted/50 md:gap-4 md:px-5 md:py-4"
+              href={routes.workout(workout.id)}
+              className="group border-border bg-card hover:bg-muted/50 flex items-center gap-3 rounded-xl border px-4 py-3.5 transition-colors md:gap-4 md:px-5 md:py-4"
             >
               {/* Date badge */}
-              <div className="flex w-12 shrink-0 flex-col items-center rounded-lg bg-muted px-2 py-1.5 text-center">
-                <span className="text-xs font-medium text-muted-foreground uppercase">
+              <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg px-2 py-1.5 text-center">
+                <span className="text-muted-foreground text-xs font-medium uppercase">
                   {new Intl.DateTimeFormat("en-US", { month: "short" }).format(
                     new Date(workout.date)
                   )}
                 </span>
-                <span className="text-xl font-bold leading-tight">
+                <span className="text-xl leading-tight font-bold">
                   {new Date(workout.date).getDate()}
                 </span>
               </div>
@@ -100,7 +110,7 @@ export default async function DashboardPage() {
               {/* Info */}
               <div className="min-w-0 flex-1">
                 <p className="truncate font-medium">{workout.name}</p>
-                <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                <div className="text-muted-foreground mt-1 flex items-center gap-3 text-xs">
                   <span>{workout.exerciseCount} exercises</span>
                   <span>·</span>
                   <span>{formatTonnage(workout.tonnage)} volume</span>
@@ -115,7 +125,7 @@ export default async function DashboardPage() {
                 </div>
                 {/* Exercise names */}
                 {workout.exercises.length > 0 && (
-                  <p className="mt-1 truncate text-xs text-muted-foreground/70">
+                  <p className="text-muted-foreground/70 mt-1 truncate text-xs">
                     {workout.exercises
                       .slice(0, 4)
                       .map((ex) => ex.template?.name ?? "Exercise")
@@ -126,7 +136,7 @@ export default async function DashboardPage() {
                 )}
               </div>
 
-              <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ChevronRight className="text-muted-foreground size-4 shrink-0 transition-transform group-hover:translate-x-0.5" />
             </Link>
           ))}
         </div>
@@ -145,8 +155,8 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3 md:p-4">
-      <div className="mb-2 flex items-center gap-1.5 text-muted-foreground md:mb-3 md:gap-2">
+    <div className="border-border bg-card rounded-xl border p-3 md:p-4">
+      <div className="text-muted-foreground mb-2 flex items-center gap-1.5 md:mb-3 md:gap-2">
         {icon}
         <span className="text-[11px] font-medium md:text-xs">{label}</span>
       </div>
@@ -157,15 +167,15 @@ function StatCard({
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border py-16 text-center">
-      <Dumbbell className="mb-4 size-10 text-muted-foreground/40" />
+    <div className="border-border flex flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+      <Dumbbell className="text-muted-foreground/40 mb-4 size-10" />
       <p className="font-medium">No workouts yet</p>
-      <p className="mt-1 text-sm text-muted-foreground">
+      <p className="text-muted-foreground mt-1 text-sm">
         Log your first workout to get started
       </p>
       <Link
         href="/workouts/new"
-        className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+        className="bg-primary text-primary-foreground mt-4 rounded-lg px-4 py-2 text-sm font-medium transition-opacity hover:opacity-90"
       >
         Log a Workout
       </Link>

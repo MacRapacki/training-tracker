@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { signIn, signOut } from "@/feature/auth/auth";
 import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 const registerSchema = z.object({
   name: z.string().min(2),
@@ -51,7 +52,7 @@ export async function register(
     data: { name, email, password: hashedPassword },
   });
 
-  redirect("/login?registered=true");
+  redirect(`${routes.login}?registered=true`);
 }
 
 export async function login(
@@ -71,7 +72,7 @@ export async function login(
     await signIn("credentials", {
       email: parsed.data.email,
       password: parsed.data.password,
-      redirectTo: "/dashboard",
+      redirectTo: routes.dashboard,
     });
   } catch (error) {
     // next-auth throws a redirect — let it propagate
@@ -83,5 +84,5 @@ export async function login(
 }
 
 export async function logout() {
-  await signOut({ redirectTo: "/login" });
+  await signOut({ redirectTo: routes.login });
 }

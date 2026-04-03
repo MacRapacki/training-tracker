@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/feature/auth/auth";
 import { redirect } from "next/navigation";
+import { routes } from "@/lib/routes";
 
 const setSchema = z.object({
   reps: z.coerce.number().int().min(1),
@@ -70,7 +71,53 @@ export async function saveWorkout(data: SaveWorkoutInput) {
     },
   });
 
-  redirect(`/workouts/${workout.id}`);
+  redirect(routes.workout(workout.id));
+}
+
+export async function updateWorkout(id: string, data: SaveWorkoutInput) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return { error: "Not authenticated" };
+
+  const existing = await prisma.workout.findFirst({ where: { id, userId } });
+  if (!existing) return { error: "Not found" };
+
+  const parsed = workoutSchema.safeParse(data);
+  if (!parsed.success) {
+    return { error: "Invalid data", issues: parsed.error.flatten() };
+  }
+
+  const { name, date, notes, exercises } = parsed.data;
+
+  await prisma.workout.update({
+    where: { id },
+    data: {
+      name,
+      date: new Date(date),
+      notes,
+      exercises: {
+        deleteMany: {},
+        create: exercises.map((ex, i) => ({
+          order: i,
+          notes: ex.notes,
+          machineSettings: ex.machineSettings,
+          templateId: ex.templateId ?? null,
+          sets: {
+            create: ex.sets.map((s, j) => ({
+              order: j,
+              reps: s.reps,
+              weight: s.weight,
+              unit: s.unit,
+              quality: s.quality ?? null,
+              notes: s.notes,
+            })),
+          },
+        })),
+      },
+    },
+  });
+
+  redirect(routes.workout(id));
 }
 
 export async function getExerciseTemplates(query: string = "") {
