@@ -139,6 +139,64 @@ export async function updateWorkout(id: string, data: SaveWorkoutInput) {
   redirect(routes.workout(id));
 }
 
+export async function getRecentWorkouts() {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return [];
+
+  return prisma.workout.findMany({
+    where: { userId },
+    orderBy: { date: "desc" },
+    take: 30,
+    select: {
+      id: true,
+      name: true,
+      date: true,
+      _count: { select: { exercises: true } },
+    },
+  });
+}
+
+export async function getWorkoutForClone(id: string) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  const workout = await prisma.workout.findFirst({
+    where: { id, userId },
+    include: {
+      exercises: {
+        orderBy: { order: "asc" },
+        include: {
+          template: { select: { name: true } },
+          sets: { orderBy: { order: "asc" } },
+        },
+      },
+    },
+  });
+
+  if (!workout) return null;
+
+  return {
+    name: workout.name,
+    notes: workout.notes ?? "",
+    exercises: workout.exercises.map((ex) => ({
+      id: crypto.randomUUID(),
+      templateId: ex.templateId ?? null,
+      templateName: ex.template?.name ?? "",
+      machineSettings: ex.machineSettings ?? "",
+      notes: ex.notes ?? "",
+      sets: ex.sets.map((s) => ({
+        reps: String(s.reps),
+        weight: String(s.weight),
+        quality: s.quality ?? null,
+        notes: s.notes ?? "",
+      })),
+      expanded: false,
+    })),
+  };
+}
+
 export async function getExerciseTemplates(query: string = "") {
   const session = await auth();
   const userId = session?.user?.id;

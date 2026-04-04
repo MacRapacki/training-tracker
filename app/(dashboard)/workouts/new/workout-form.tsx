@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import {
   saveWorkout,
   updateWorkout,
+  getRecentWorkouts,
+  getWorkoutForClone,
   type SaveWorkoutInput,
 } from "@/app/actions/workouts";
 import { cn } from "@/lib/utils";
@@ -15,6 +17,8 @@ import {
   Search,
   Loader2,
   MessageSquare,
+  ClipboardList,
+  X,
 } from "lucide-react";
 
 type Template = { id: string; name: string; equipment: string };
@@ -72,6 +76,13 @@ type InitialData = {
   exercises: ExerciseRow[];
 };
 
+type RecentWorkout = {
+  id: string;
+  name: string;
+  date: Date;
+  _count: { exercises: number };
+};
+
 export function WorkoutForm({
   templates,
   initialData,
@@ -99,6 +110,9 @@ export function WorkoutForm({
   const [expandedSetNotes, setExpandedSetNotes] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [recentWorkouts, setRecentWorkouts] = useState<RecentWorkout[]>([]);
+  const [cloneLoading, setCloneLoading] = useState(false);
 
   // ── Exercise helpers ──────────────────────────────────────────
 
@@ -172,6 +186,27 @@ export function WorkoutForm({
     );
   }
 
+  // ── Clone ─────────────────────────────────────────────────────
+
+  async function openCloneModal() {
+    setCloneModalOpen(true);
+    setCloneLoading(true);
+    const workouts = await getRecentWorkouts();
+    setRecentWorkouts(workouts as RecentWorkout[]);
+    setCloneLoading(false);
+  }
+
+  async function applyClone(id: string) {
+    setCloneLoading(true);
+    const data = await getWorkoutForClone(id);
+    setCloneLoading(false);
+    if (!data) return;
+    setName(data.name);
+    setNotes(data.notes);
+    setExercises(data.exercises);
+    setCloneModalOpen(false);
+  }
+
   // ── Submit ────────────────────────────────────────────────────
 
   function handleSubmit() {
@@ -228,6 +263,17 @@ export function WorkoutForm({
 
   return (
     <div className="space-y-5">
+      {/* Clone button — only on new workout */}
+      {!workoutId && (
+        <button
+          onClick={openCloneModal}
+          className="border-border text-muted-foreground hover:border-foreground hover:text-foreground flex w-full items-center justify-center gap-2 rounded-xl border py-3 text-sm transition-colors"
+        >
+          <ClipboardList className="size-4" />
+          Clone previous workout
+        </button>
+      )}
+
       {/* Workout meta */}
       <div className="border-border bg-card space-y-3 rounded-xl border p-4">
         <div>
@@ -563,6 +609,53 @@ export function WorkoutForm({
           "Save Workout"
         )}
       </button>
+
+      {/* Clone modal */}
+      {cloneModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+          <div
+            className="absolute inset-0 bg-black/50"
+            onClick={() => setCloneModalOpen(false)}
+          />
+          <div className="relative z-10 flex w-full max-w-sm flex-col rounded-xl border border-border bg-card shadow-xl max-h-[70vh]">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h2 className="text-sm font-semibold">Clone previous workout</h2>
+              <button
+                onClick={() => setCloneModalOpen(false)}
+                className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="overflow-y-auto flex-1 p-2">
+              {cloneLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : recentWorkouts.length === 0 ? (
+                <p className="py-10 text-center text-sm text-muted-foreground">
+                  No previous workouts found
+                </p>
+              ) : (
+                recentWorkouts.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => applyClone(w.id)}
+                    className="w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted"
+                  >
+                    <p className="text-sm font-medium">{w.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(w.date).toLocaleDateString()} ·{" "}
+                      {w._count.exercises}{" "}
+                      {w._count.exercises === 1 ? "exercise" : "exercises"}
+                    </p>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
