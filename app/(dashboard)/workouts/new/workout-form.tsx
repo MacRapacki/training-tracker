@@ -6,6 +6,7 @@ import {
   updateWorkout,
   getRecentWorkouts,
   getWorkoutForClone,
+  setExercisePreference,
   type SaveWorkoutInput,
 } from "@/app/actions/workouts";
 import { cn } from "@/lib/utils";
@@ -19,9 +20,16 @@ import {
   MessageSquare,
   ClipboardList,
   X,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 
-type Template = { id: string; name: string; equipment: string };
+type Template = {
+  id: string;
+  name: string;
+  equipment: string;
+  reaction: "LIKED" | "DISLIKED" | null;
+};
 
 type SetRow = {
   reps: string;
@@ -107,6 +115,9 @@ export function WorkoutForm({
   );
   const [search, setSearch] = useState<Record<string, string>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [reactions, setReactions] = useState<Record<string, "LIKED" | "DISLIKED" | null>>(
+    () => Object.fromEntries(templates.map((t) => [t.id, t.reaction]))
+  );
   const [expandedSetNotes, setExpandedSetNotes] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -184,6 +195,15 @@ export function WorkoutForm({
         ex.id === exId ? { ...ex, sets: ex.sets.filter((_, j) => j !== i) } : ex
       )
     );
+  }
+
+  // ── Reactions ────────────────────────────────────────────────
+
+  async function toggleReaction(templateId: string, reaction: "LIKED" | "DISLIKED") {
+    const current = reactions[templateId] ?? null;
+    const next = current === reaction ? null : reaction;
+    setReactions((prev) => ({ ...prev, [templateId]: next }));
+    await setExercisePreference(templateId, next);
   }
 
   // ── Clone ─────────────────────────────────────────────────────
@@ -344,7 +364,7 @@ export function WorkoutForm({
                 {exIdx + 1}
               </span>
 
-              <div className="relative flex-1">
+              <div className="relative min-w-0 flex-1">
                 {ex.templateId || ex.templateName ? (
                   <button
                     onClick={() => {
@@ -386,18 +406,48 @@ export function WorkoutForm({
                           className="fixed inset-0 z-10"
                           onClick={() => setOpenDropdownId(null)}
                         />
-                        <div className="border-border bg-card absolute top-full right-0 left-0 z-20 mt-1 max-h-56 overflow-y-auto rounded-lg border shadow-lg">
+                        <div className="border-border bg-card absolute top-full left-0 z-20 mt-1 max-h-56 min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border shadow-lg">
                           {filtered(ex.id).map((t) => (
-                            <button
+                            <div
                               key={t.id}
-                              onClick={() => selectTemplate(ex.id, t)}
-                              className="hover:bg-muted flex w-full items-center gap-2 px-3 py-2 text-left text-sm"
+                              className="hover:bg-muted flex w-full items-center gap-1 px-2 py-1.5 text-sm"
                             >
-                              <span className="flex-1 truncate">{t.name}</span>
-                              <span className="text-muted-foreground shrink-0 text-[10px] uppercase">
-                                {t.equipment.toLowerCase()}
-                              </span>
-                            </button>
+                              <button
+                                onClick={() => selectTemplate(ex.id, t)}
+                                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                              >
+                                <span className="truncate">{t.name}</span>
+                                <span className="text-muted-foreground shrink-0 text-[10px] uppercase">
+                                  {t.equipment.toLowerCase()}
+                                </span>
+                              </button>
+                              <div className="flex shrink-0 items-center gap-0.5">
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleReaction(t.id, "LIKED"); }}
+                                  title="Lubię to ćwiczenie"
+                                  className={cn(
+                                    "rounded p-1 transition-colors",
+                                    reactions[t.id] === "LIKED"
+                                      ? "text-green-500"
+                                      : "text-muted-foreground hover:text-green-500"
+                                  )}
+                                >
+                                  <ThumbsUp className="size-3.5" />
+                                </button>
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); toggleReaction(t.id, "DISLIKED"); }}
+                                  title="Nie lubię tego ćwiczenia"
+                                  className={cn(
+                                    "rounded p-1 transition-colors",
+                                    reactions[t.id] === "DISLIKED"
+                                      ? "text-red-500"
+                                      : "text-muted-foreground hover:text-red-500"
+                                  )}
+                                >
+                                  <ThumbsDown className="size-3.5" />
+                                </button>
+                              </div>
+                            </div>
                           ))}
                           {q && (
                             <button

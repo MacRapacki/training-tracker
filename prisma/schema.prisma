@@ -19,12 +19,13 @@ model User {
   password      String?
   createdAt     DateTime  @default(now())
 
-  workouts          Workout[]
-  exerciseTemplates ExerciseTemplate[]
-  bodyWeights       BodyWeight[]
-  waterIntakes      WaterIntake[]
-  accounts          Account[]
-  sessions          Session[]
+  workouts            Workout[]
+  exerciseTemplates   ExerciseTemplate[]
+  bodyWeights         BodyWeight[]
+  waterIntakes        WaterIntake[]
+  accounts            Account[]
+  sessions            Session[]
+  exercisePreferences ExercisePreference[]
 }
 
 model Account {
@@ -103,9 +104,26 @@ model ExerciseTemplate {
   user          User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
 
-  exercises Exercise[]
+  exercises   Exercise[]
+  preferences ExercisePreference[]
 
   @@unique([name, isGlobal])
+}
+
+enum ExerciseReaction {
+  LIKED
+  DISLIKED
+}
+
+model ExercisePreference {
+  id         String           @id @default(cuid())
+  userId     String
+  templateId String
+  reaction   ExerciseReaction
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   ExerciseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
 }
 
 // ---------------------------------------------------------------------------

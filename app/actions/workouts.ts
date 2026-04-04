@@ -201,12 +201,49 @@ export async function getExerciseTemplates(query: string = "") {
   const session = await auth();
   const userId = session?.user?.id;
 
-  return prisma.exerciseTemplate.findMany({
+  const templates = await prisma.exerciseTemplate.findMany({
     where: {
       OR: [{ isGlobal: true }, { userId: userId ?? "" }],
       name: { contains: query, mode: "insensitive" },
     },
     orderBy: [{ isGlobal: "desc" }, { name: "asc" }],
     take: 20,
+    include: userId
+      ? {
+          preferences: {
+            where: { userId },
+            select: { reaction: true },
+          },
+        }
+      : undefined,
   });
+
+  return templates.map((t) => {
+    const pref = (t as { preferences?: { reaction: "LIKED" | "DISLIKED" }[] }).preferences?.[0];
+    return {
+      id: t.id,
+      name: t.name,
+      equipment: t.equipment,
+      reaction: (pref?.reaction ?? null) as "LIKED" | "DISLIKED" | null,
+    };
+  });
+}
+
+export async function setExercisePreference(
+  templateId: string,
+  reaction: "LIKED" | "DISLIKED" | null
+) {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return;
+
+  if (reaction === null) {
+    await prisma.exercisePreference.deleteMany({ where: { userId, templateId } });
+  } else {
+    await prisma.exercisePreference.upsert({
+      where: { userId_templateId: { userId, templateId } },
+      create: { userId, templateId, reaction },
+      update: { reaction },
+    });
+  }
 }
