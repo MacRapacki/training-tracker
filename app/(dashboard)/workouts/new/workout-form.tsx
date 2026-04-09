@@ -66,7 +66,9 @@ const defaultExercise = (): ExerciseRow => ({
 });
 
 function bwRatio(ex: ExerciseRow, bw: number): number | null {
-  const max = Math.max(...ex.sets.map((s) => Number(s.weight)).filter((w) => w > 0));
+  const max = Math.max(
+    ...ex.sets.map((s) => Number(s.weight)).filter((w) => w > 0)
+  );
   if (!isFinite(max) || max <= 0 || bw <= 0) return null;
   return max / bw;
 }
@@ -115,10 +117,12 @@ export function WorkoutForm({
   );
   const [search, setSearch] = useState<Record<string, string>>({});
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-  const [reactions, setReactions] = useState<Record<string, "LIKED" | "DISLIKED" | null>>(
-    () => Object.fromEntries(templates.map((t) => [t.id, t.reaction]))
+  const [reactions, setReactions] = useState<
+    Record<string, "LIKED" | "DISLIKED" | null>
+  >(() => Object.fromEntries(templates.map((t) => [t.id, t.reaction])));
+  const [expandedSetNotes, setExpandedSetNotes] = useState<Set<string>>(
+    new Set()
   );
-  const [expandedSetNotes, setExpandedSetNotes] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
@@ -183,7 +187,7 @@ export function WorkoutForm({
         const last = ex.sets[ex.sets.length - 1];
         return {
           ...ex,
-          sets: [...ex.sets, { ...defaultSet(), weight: last?.weight ?? "" }],
+          sets: [...ex.sets, last ? { ...last } : defaultSet()],
         };
       })
     );
@@ -199,7 +203,10 @@ export function WorkoutForm({
 
   // ── Reactions ────────────────────────────────────────────────
 
-  async function toggleReaction(templateId: string, reaction: "LIKED" | "DISLIKED") {
+  async function toggleReaction(
+    templateId: string,
+    reaction: "LIKED" | "DISLIKED"
+  ) {
     const current = reactions[templateId] ?? null;
     const next = current === reaction ? null : reaction;
     setReactions((prev) => ({ ...prev, [templateId]: next }));
@@ -376,7 +383,7 @@ export function WorkoutForm({
                     }}
                     className="bg-muted flex w-full items-center justify-between rounded-lg px-3 py-1.5 text-sm font-medium"
                   >
-                    <span className="truncate">{ex.templateName}</span>
+                    <span className="break-words">{ex.templateName}</span>
                     <span className="text-muted-foreground ml-2 shrink-0 text-xs">
                       change
                     </span>
@@ -406,7 +413,7 @@ export function WorkoutForm({
                           className="fixed inset-0 z-10"
                           onClick={() => setOpenDropdownId(null)}
                         />
-                        <div className="border-border bg-card absolute top-full left-0 z-20 mt-1 max-h-56 min-w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg border shadow-lg">
+                        <div className="border-border bg-card absolute top-full left-0 z-20 mt-1 max-h-56 max-w-[calc(100vw-2rem)] min-w-full overflow-y-auto rounded-lg border shadow-lg">
                           {filtered(ex.id).map((t) => (
                             <div
                               key={t.id}
@@ -423,7 +430,10 @@ export function WorkoutForm({
                               </button>
                               <div className="flex shrink-0 items-center gap-0.5">
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); toggleReaction(t.id, "LIKED"); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleReaction(t.id, "LIKED");
+                                  }}
                                   title="Lubię to ćwiczenie"
                                   className={cn(
                                     "rounded p-1 transition-colors",
@@ -435,7 +445,10 @@ export function WorkoutForm({
                                   <ThumbsUp className="size-3.5" />
                                 </button>
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); toggleReaction(t.id, "DISLIKED"); }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleReaction(t.id, "DISLIKED");
+                                  }}
                                   title="Nie lubię tego ćwiczenia"
                                   className={cn(
                                     "rounded p-1 transition-colors",
@@ -526,7 +539,8 @@ export function WorkoutForm({
                 {/* Sets */}
                 {ex.sets.map((s, i) => {
                   const noteKey = `${ex.id}-${i}`;
-                  const showNote = s.notes !== "" || expandedSetNotes.has(noteKey);
+                  const showNote =
+                    s.notes !== "" || expandedSetNotes.has(noteKey);
                   return (
                     <div key={i} className="space-y-1">
                       <div className="grid grid-cols-[2rem_1fr_1fr_4rem_3rem] items-center gap-2">
@@ -667,8 +681,8 @@ export function WorkoutForm({
             className="absolute inset-0 bg-black/50"
             onClick={() => setCloneModalOpen(false)}
           />
-          <div className="relative z-10 flex w-full max-w-sm flex-col rounded-xl border border-border bg-card shadow-xl max-h-[70vh]">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="border-border bg-card relative z-10 flex max-h-[70vh] w-full max-w-sm flex-col rounded-xl border shadow-xl">
+            <div className="border-border flex items-center justify-between border-b px-4 py-3">
               <h2 className="text-sm font-semibold">Clone previous workout</h2>
               <button
                 onClick={() => setCloneModalOpen(false)}
@@ -677,13 +691,13 @@ export function WorkoutForm({
                 <X className="size-4" />
               </button>
             </div>
-            <div className="overflow-y-auto flex-1 p-2">
+            <div className="flex-1 overflow-y-auto p-2">
               {cloneLoading ? (
                 <div className="flex justify-center py-10">
-                  <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                  <Loader2 className="text-muted-foreground size-5 animate-spin" />
                 </div>
               ) : recentWorkouts.length === 0 ? (
-                <p className="py-10 text-center text-sm text-muted-foreground">
+                <p className="text-muted-foreground py-10 text-center text-sm">
                   No previous workouts found
                 </p>
               ) : (
@@ -691,10 +705,10 @@ export function WorkoutForm({
                   <button
                     key={w.id}
                     onClick={() => applyClone(w.id)}
-                    className="w-full rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-muted"
+                    className="hover:bg-muted w-full rounded-lg px-3 py-2.5 text-left transition-colors"
                   >
                     <p className="text-sm font-medium">{w.name}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-muted-foreground text-xs">
                       {new Date(w.date).toLocaleDateString()} ·{" "}
                       {w._count.exercises}{" "}
                       {w._count.exercises === 1 ? "exercise" : "exercises"}
